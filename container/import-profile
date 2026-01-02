@@ -1,0 +1,31 @@
+#!/bin/bash -e
+# imports ~/.profile.d entries
+
+function import_profile_from {
+  if [[ "$#" -lt 2 ]]; then
+    import_profile_from "$1" "$1"
+  else
+    root_path="$1"
+    current_path="$2"
+
+    [[ -d "${current_path}" ]] || (echo "ERROR: cannot import profile.d entries from non-directory '${current_path}'")
+
+    for f in "${current_path}"/*; do
+      if [ -d "$f" ]; then
+        import_profile_from "${root_path}" "$f"
+      elif [ -f "$f" ]; then
+        echo -n " $(realpath --relative-to="${root_path}" "$f")"
+        source "$f" || echo -n " (failed)"
+      fi
+    done
+  fi
+}
+
+echo -n "importing environment settings: {"
+for f in "$@"; do
+  [[ -e "${f}" ]] || continue
+  import_profile_from "$1"; shift
+done
+echo " }"
+
+unset -f import_profile_from
