@@ -1,0 +1,77 @@
+ARG BASE_IMAGE_NAME=debian
+ARG BASE_IMAGE_TAG=unstable
+ARG BASE_IMAGE_TAG_SUFFIX=-slim
+FROM $BASE_IMAGE_NAME:$BASE_IMAGE_TAG$BASE_IMAGE_TAG_SUFFIX
+
+ENV DEBIAN_PRIORITY=critical
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get upgrade -y
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates \
+  git \
+  make \
+  binutils \
+  golang-go
+
+##############################################
+# browserpass_native build deps
+# - https://github.com/browserpass/browserpass-native?tab=readme-ov-file#build-locally
+##############################################
+
+# browserpass_native repo: https://github.com/browserpass/browserpass-native.git
+
+ENV BROWSERPASS_NATIVE_SRC="/src/browserpass_native"
+
+RUN mkdir -p "${BROWSERPASS_NATIVE_SRC}"
+RUN cd "${BROWSERPASS_NATIVE_SRC}" \
+  && git init \
+  && git remote add origin "https://github.com/browserpass/browserpass-native.git"
+
+#########################
+# repo metadata cleanup #
+#########################
+
+RUN apt-get update && apt-get upgrade -y
+RUN apt autoremove --purge -y
+RUN apt-get clean -y
+RUN rm -rf /var/lib/apt/lists/*
+
+###############
+# environment #
+###############
+
+ENV OUT_DIR="/out"
+RUN mkdir -p "${OUT_DIR}"
+
+ENV PREFIX_DIR="/usr/local"
+
+ARG IMAGE_ENV_ROOT="/srv"
+RUN mkdir -p "${IMAGE_ENV_ROOT}"
+
+ARG IMAGE_ETC_DIR="${IMAGE_ENV_ROOT}/etc"
+RUN mkdir -p "${IMAGE_ETC_DIR}"
+
+ARG IMAGE_ENV_DIR="${IMAGE_ENV_ROOT}/env"
+RUN mkdir -p "${IMAGE_ENV_DIR}"
+
+#############
+# provision #
+#############
+
+ARG TMP_PROVISION_DIR="/tmp/.build-env-provision"
+RUN mkdir -p "${TMP_PROVISION_DIR}"
+
+#COPY import-profile "${IMAGE_ENV_DIR}/import-profile"
+
+##############
+# entrypoint #
+##############
+
+#ENTRYPOINT ["bash", "-o", "history"]
+COPY entrypoint.sh "/srv/entrypoint.sh"
+ENTRYPOINT "/srv/entrypoint.sh"
+
+WORKDIR "/srv"
