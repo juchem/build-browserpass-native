@@ -15,15 +15,19 @@ CONTAINER_RUNTIME ?= /usr/bin/crun
 
 PREFIX ?= /usr/local
 
+BROWSERPASS_EXE ?= $(PREFIX)/bin/browserpass
+
 CHROMIUM_DST_DIR ?= /etc/chromium/native-messaging-hosts
 FIREFOX_DST_DIR ?= /usr/lib/mozilla/native-messaging-hosts
 BRAVE_DST_DIR ?= /etc/opt/chrome/native-messaging-hosts
 
 HOSTS_JSON ?= com.github.browserpass.native.json
 
-CHROMIUM_SRC_DIR ?= $(PREFIX)/lib/browserpass/hosts/chromium
-FIREFOX_SRC_DIR ?= $(PREFIX)/lib/browserpass/hosts/firefox
-BRAVE_SRC_DIR ?= $(CHROMIUM_SRC_DIR)
+HOSTS_SRC_DIR ?= $(PREFIX)/lib/browserpass/hosts
+
+CHROMIUM_SRC_DIR ?= $(HOSTS_SRC_DIR)/chromium
+FIREFOX_SRC_DIR ?=	$(HOSTS_SRC_DIR)/firefox
+BRAVE_SRC_DIR ?=		$(CHROMIUM_SRC_DIR)
 
 .PHONY: all
 all: build
@@ -40,25 +44,28 @@ image:
 			"$(SRC_DIR)"
 
 .PHONY: install
-install: build
-	sudo mkdir -p "$(PREFIX)"
-	sudo rsync -av "$(BUILD_DIR)/" "$(PREFIX)"
-	rm -rf "$(BUILD_DIR)"
+install:
+	mkdir -p "$(PREFIX)"
+	rsync -av "$(BUILD_DIR)/" "$(PREFIX)"
+	find "$(HOSTS_SRC_DIR)" \
+		-name $(HOSTS_JSON) \
+		-exec sed -i -e 's|%%replace%%|$(BROWSERPASS_EXE)|g' '{}' +
+	#rm -rf "$(BUILD_DIR)"
 
 .PHONY: install-chromium
 install-chromium: install
-	sudo mkdir -p "$(CHROMIUM_DST_DIR)"
-	sudo ln -sfv "$(CHROMIUM_SRC_DIR)/$(HOSTS_JSON)" "$(CHROMIUM_DST_DIR)/$(HOSTS_JSON)"
+	mkdir -p "$(CHROMIUM_DST_DIR)"
+	ln -sfv "$(CHROMIUM_SRC_DIR)/$(HOSTS_JSON)" "$(CHROMIUM_DST_DIR)/$(HOSTS_JSON)"
 
 .PHONY: install-firefox
 install-firefox: install
-	sudo mkdir -p "$(FIREFOX_DST_DIR)"
-	sudo ln -sfv "$(FIREFOX_SRC_DIR)/$(HOSTS_JSON)" "$(FIREFOX_DST_DIR)/$(HOSTS_JSON)"
+	mkdir -p "$(FIREFOX_DST_DIR)"
+	ln -sfv "$(FIREFOX_SRC_DIR)/$(HOSTS_JSON)" "$(FIREFOX_DST_DIR)/$(HOSTS_JSON)"
 
 .PHONY: install-brave
 install-brave: install
-	sudo mkdir -p "$(BRAVE_DST_DIR)"
-	sudo ln -sfv "$(BRAVE_SRC_DIR)/$(HOSTS_JSON)" "$(BRAVE_DST_DIR)/$(HOSTS_JSON)"
+	mkdir -p "$(BRAVE_DST_DIR)"
+	ln -sfv "$(BRAVE_SRC_DIR)/$(HOSTS_JSON)" "$(BRAVE_DST_DIR)/$(HOSTS_JSON)"
 
 .PHONY: build
 build: image
