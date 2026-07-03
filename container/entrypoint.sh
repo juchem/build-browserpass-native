@@ -11,9 +11,8 @@ build_browserpass_native() {
   git submodule update --init --recursive --depth=1
 
   (set -x; \
-    make browserpass-linux64 \
-    && strip --strip-all browserpass-linux64 \
-    && mv browserpass-linux64 "${OUT_DIR}/" \
+    make browserpass GOFLAGS='-buildmode=pie -trimpath -ldflags="-s"' \
+    && make install PREFIX="${OUT_DIR}/"
   )
 
   popd > /dev/null

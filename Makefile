@@ -13,8 +13,17 @@ SRC_DIR=container
 
 CONTAINER_RUNTIME ?= /usr/bin/crun
 
+PREFIX ?= /usr/local
 
-INSTALL_DIR ?= /usr/local/lib/browserpass
+CHROMIUM_DST_DIR ?= /etc/chromium/native-messaging-hosts
+FIREFOX_DST_DIR ?= /usr/lib/mozilla/native-messaging-hosts
+BRAVE_DST_DIR ?= /etc/opt/chrome/native-messaging-hosts
+
+HOSTS_JSON ?= com.github.browserpass.native.json
+
+CHROMIUM_SRC_DIR ?= $(PREFIX)/lib/browserpass/hosts/chromium
+FIREFOX_SRC_DIR ?= $(PREFIX)/lib/browserpass/hosts/firefox
+BRAVE_SRC_DIR ?= $(CHROMIUM_SRC_DIR)
 
 .PHONY: all
 all: build
@@ -30,13 +39,28 @@ image:
 		--tag "$(IMAGE_NAME):$(IMAGE_TAG)" \
 			"$(SRC_DIR)"
 
+.PHONY: install
 install: build
-	sudo mkdir -p "$(INSTALL_DIR)"
-	sudo mv \
-		"$(BUILD_DIR)/browserpass-linux64" \
-		"$(INSTALL_DIR)/browserpass-native"
+	sudo mkdir -p "$(PREFIX)"
+	sudo rsync -av "$(BUILD_DIR)/" "$(PREFIX)"
+	rm -rf "$(BUILD_DIR)"
 
-.PHONY: image
+.PHONY: install-chromium
+install-chromium: install
+	sudo mkdir -p "$(CHROMIUM_DST_DIR)"
+	sudo ln -sfv "$(CHROMIUM_SRC_DIR)/$(HOSTS_JSON)" "$(CHROMIUM_DST_DIR)/$(HOSTS_JSON)"
+
+.PHONY: install-firefox
+install-firefox: install
+	sudo mkdir -p "$(FIREFOX_DST_DIR)"
+	sudo ln -sfv "$(FIREFOX_SRC_DIR)/$(HOSTS_JSON)" "$(FIREFOX_DST_DIR)/$(HOSTS_JSON)"
+
+.PHONY: install-brave
+install-brave: install
+	sudo mkdir -p "$(BRAVE_DST_DIR)"
+	sudo ln -sfv "$(BRAVE_SRC_DIR)/$(HOSTS_JSON)" "$(BRAVE_DST_DIR)/$(HOSTS_JSON)"
+
+.PHONY: build
 build: image
 	mkdir -p "$(BUILD_DIR)"
 	podman run \
