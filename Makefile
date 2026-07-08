@@ -50,7 +50,11 @@ install:
 	find "$(HOSTS_SRC_DIR)" \
 		-name $(HOSTS_JSON) \
 		-exec sed -i -e 's|%%replace%%|$(BROWSERPASS_EXE)|g' '{}' +
-	#rm -rf "$(BUILD_DIR)"
+	$(MAKE) clean
+
+.PHONY: clean
+clean:
+	rm -rf "$(BUILD_DIR)"
 
 .PHONY: install-chromium
 install-chromium: install
