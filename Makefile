@@ -17,17 +17,17 @@ PREFIX ?= /usr/local
 
 BROWSERPASS_EXE ?= $(PREFIX)/bin/browserpass
 
+BRAVE_DST_DIR ?= /etc/opt/chrome/native-messaging-hosts
 CHROMIUM_DST_DIR ?= /etc/chromium/native-messaging-hosts
 FIREFOX_DST_DIR ?= /usr/lib/mozilla/native-messaging-hosts
-BRAVE_DST_DIR ?= /etc/opt/chrome/native-messaging-hosts
 
 HOSTS_JSON ?= com.github.browserpass.native.json
 
 HOSTS_SRC_DIR ?= $(PREFIX)/lib/browserpass/hosts
 
+BRAVE_SRC_DIR ?=		$(CHROMIUM_SRC_DIR)
 CHROMIUM_SRC_DIR ?= $(HOSTS_SRC_DIR)/chromium
 FIREFOX_SRC_DIR ?=	$(HOSTS_SRC_DIR)/firefox
-BRAVE_SRC_DIR ?=		$(CHROMIUM_SRC_DIR)
 
 .PHONY: all
 all: build
@@ -43,8 +43,20 @@ image:
 		--tag "$(IMAGE_NAME):$(IMAGE_TAG)" \
 			"$(SRC_DIR)"
 
+.PHONY: clean
+clean:
+	rm -rf "$(BUILD_DIR)"
+
 .PHONY: install
 install:
+	@echo "usage:"
+	@echo "  make && sudo make install-binary && sudo make install-browsers"
+	@echo "  make && sudo make install-binary && sudo make install-brave"
+	@echo "  make && sudo make install-binary && sudo make install-chromium"
+	@echo "  make && sudo make install-binary && sudo make install-firefox"
+
+.PHONY: install-binary
+install-binary:
 	mkdir -p "$(PREFIX)"
 	rsync -av "$(BUILD_DIR)/" "$(PREFIX)"
 	find "$(HOSTS_SRC_DIR)" \
@@ -52,24 +64,23 @@ install:
 		-exec sed -i -e 's|%%replace%%|$(BROWSERPASS_EXE)|g' '{}' +
 	$(MAKE) clean
 
-.PHONY: clean
-clean:
-	rm -rf "$(BUILD_DIR)"
+.PHONY: install-browsers
+install-browsers: install-brave install-chromium install-firefox
+
+.PHONY: install-brave
+install-brave:
+	mkdir -p "$(BRAVE_DST_DIR)"
+	ln -sfv "$(BRAVE_SRC_DIR)/$(HOSTS_JSON)" "$(BRAVE_DST_DIR)/$(HOSTS_JSON)"
 
 .PHONY: install-chromium
-install-chromium: install
+install-chromium:
 	mkdir -p "$(CHROMIUM_DST_DIR)"
 	ln -sfv "$(CHROMIUM_SRC_DIR)/$(HOSTS_JSON)" "$(CHROMIUM_DST_DIR)/$(HOSTS_JSON)"
 
 .PHONY: install-firefox
-install-firefox: install
+install-firefox:
 	mkdir -p "$(FIREFOX_DST_DIR)"
 	ln -sfv "$(FIREFOX_SRC_DIR)/$(HOSTS_JSON)" "$(FIREFOX_DST_DIR)/$(HOSTS_JSON)"
-
-.PHONY: install-brave
-install-brave: install
-	mkdir -p "$(BRAVE_DST_DIR)"
-	ln -sfv "$(BRAVE_SRC_DIR)/$(HOSTS_JSON)" "$(BRAVE_DST_DIR)/$(HOSTS_JSON)"
 
 .PHONY: build
 build: image
